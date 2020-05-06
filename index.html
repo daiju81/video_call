@@ -2,7 +2,7 @@
 <html>
 <head lang="ja">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>SkyWay Handson</title>
+    <title>ビデオ電話</title>
     <link rel="stylesheet" href="style.css">
     <script type="text/javascript" src="//code.jquery.com/jquery-2.1.1.min.js"></script>
     <script type="text/javascript" src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
@@ -22,8 +22,8 @@
         <label for="videoSource">Video source: </label><select id="videoSource"></select>
     </div> -->
     <form id="make-call">
-        <input type="text" placeholder="Join room..." id="join-room">
-        <button type="submit">Join</button>
+        <input type="text" placeholder="任意のルームID" id="join-room">
+        <button type="submit">入室する</button>
     </form>
     <div id="end-call">
         <p>ルーム入室中<dev id="loader" style="position: absolute;
@@ -33,7 +33,7 @@
           border: 8px solid #fff;  
           border-right-color: transparent;"></dev>
           <span id="room-id">...</span></p>
-        <button>Leave</button>
+        <button>退出</button>
     </div>
 
 </div>
