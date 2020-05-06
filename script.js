@@ -1,145 +1,156 @@
-$(function(){
+$(function () {
 
-    let localStream = null;
-    let peer = null;
-    let existingCall = null;
-    let audioSelect = $('#audioSource');
-    let videoSelect = $('#videoSource');
+  let localStream = null;
+  let peer = null;
+  let existingCall = null;
+  let audioSelect = $('#audioSource');
+  let videoSelect = $('#videoSource');
 
-    navigator.mediaDevices.enumerateDevices()
-        .then(function(deviceInfos) {
-            for (let i = 0; i !== deviceInfos.length; ++i) {
-                let deviceInfo = deviceInfos[i];
-                let option = $('<option>');
-                option.val(deviceInfo.deviceId);
-                if (deviceInfo.kind === 'audioinput') {
-                    option.text(deviceInfo.label);
-                    audioSelect.append(option);
-                } else if (deviceInfo.kind === 'videoinput') {
-                    option.text(deviceInfo.label);
-                    videoSelect.append(option);
-                }
-            }
-            videoSelect.on('change', setupGetUserMedia);
-            audioSelect.on('change', setupGetUserMedia);
-            setupGetUserMedia();
-        }).catch(function (error) {
-            console.error('mediaDevices.enumerateDevices() error:', error);
-            return;
-        });
-
-    peer = new Peer({
-        key: '015fed5a-3c60-4458-92cb-00b7df83805a',
-        debug: 3
-    });
-
-    peer.on('open', function(){
-        $('#my-id').text(peer.id);
-    });
-
-    peer.on('error', function(err){
-        alert(err.message);
-    });
-
-    $('#make-call').submit(function(e){
-        e.preventDefault();
-        let roomName = $('#join-room').val();
-        if (!roomName) {
-            return;
+  navigator.mediaDevices.enumerateDevices()
+    .then(function (deviceInfos) {
+      for (let i = 0; i !== deviceInfos.length; ++i) {
+        let deviceInfo = deviceInfos[i];
+        let option = $('<option>');
+        option.val(deviceInfo.deviceId);
+        if (deviceInfo.kind === 'audioinput') {
+          option.text(deviceInfo.label);
+          audioSelect.append(option);
+        } else if (deviceInfo.kind === 'videoinput') {
+          option.text(deviceInfo.label);
+          videoSelect.append(option);
         }
-        const　call = peer.joinRoom(roomName, {mode: 'sfu', stream: localStream});
-        setupCallEventHandlers(call);
+      }
+      videoSelect.on('change', setupGetUserMedia);
+      audioSelect.on('change', setupGetUserMedia);
+      setupGetUserMedia();
+    }).catch(function (error) {
+      console.error('mediaDevices.enumerateDevices() error:', error);
+      return;
     });
 
-    $('#end-call').click(function(){
-        existingCall.close();
+  peer = new Peer({
+    key: '015fed5a-3c60-4458-92cb-00b7df83805a',
+    debug: 3
+  });
+
+  peer.on('open', function () {
+    $('#my-id').text(peer.id);
+  });
+
+  peer.on('error', function (err) {
+    alert(err.message);
+  });
+
+  $('#make-call').submit(function (e) {
+    e.preventDefault();
+    let roomName = $('#join-room').val();
+    if (!roomName) {
+      return;
+    }
+    const call = peer.joinRoom(roomName, {
+      mode: 'sfu',
+      stream: localStream
     });
+    setupCallEventHandlers(call);
+  });
 
-    function setupGetUserMedia() {
-        let audioSource = $('#audioSource').val();
-        let videoSource = $('#videoSource').val();
-        let constraints = {
-            audio: {deviceId: {exact: audioSource}},
-            video: {deviceId: {exact: videoSource}}
-        };
-        constraints.video.width = {
-            min: 320,
-            max: 320
-        };
-        constraints.video.height = {
-            min: 240,
-            max: 240        
-        };
+  $('#end-call').click(function () {
+    existingCall.close();
+  });
 
-        if(localStream){
-            localStream = null;
+  function setupGetUserMedia() {
+    let audioSource = $('#audioSource').val();
+    let videoSource = $('#videoSource').val();
+    let constraints = {
+      audio: {
+        deviceId: {
+          exact: audioSource
         }
+      },
+      video: {
+        deviceId: {
+          exact: videoSource
+        }
+      }
+    };
+    constraints.video.width = {
+      min: 320,
+      max: 320
+    };
+    constraints.video.height = {
+      min: 240,
+      max: 240
+    };
 
-        navigator.mediaDevices.getUserMedia(constraints)
-            .then(function (stream) {
-                $('#myStream').get(0).srcObject = stream;
-                localStream = stream;
-
-                if(existingCall){
-                    existingCall.replaceStream(stream);
-                }
-
-            }).catch(function (error) {
-                console.error('mediaDevice.getUserMedia() error:', error);
-                return;
-            });
+    if (localStream) {
+      localStream = null;
     }
 
-    function setupCallEventHandlers(call){
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(function (stream) {
+        $('#myStream').get(0).srcObject = stream;
+        localStream = stream;
+
         if (existingCall) {
-            existingCall.close();
-        };
+          existingCall.replaceStream(stream);
+        }
 
-        existingCall = call;
-        setupEndCallUI();
-        $('#room-id').text(call.name);
+      }).catch(function (error) {
+        console.error('mediaDevice.getUserMedia() error:', error);
+        return;
+      });
+  }
 
-        call.on('stream', function(stream){
-            addVideo(stream);
-        });
+  function setupCallEventHandlers(call) {
+    if (existingCall) {
+      existingCall.close();
+    };
 
-        call.on('removeStream', function(stream){
-            removeVideo(stream.peerId);
-        });
+    existingCall = call;
+    setupEndCallUI();
+    $('#room-id').text(call.name);
 
-        call.on('peerLeave', function(peerId){
-            removeVideo(peerId);
-        });
+    call.on('stream', function (stream) {
+      addVideo(stream);
+    });
 
-        call.on('close', function(){
-            removeAllRemoteVideos();
-            setupMakeCallUI();
-        });
-    }
+    call.on('removeStream', function (stream) {
+      removeVideo(stream.peerId);
+    });
 
-    function addVideo(stream){
-        const videoDom = $('<video autoplay>');
-        videoDom.attr('id',stream.peerId);
-        videoDom.get(0).srcObject = stream;
-        $('.videosContainer').append(videoDom);
-    }
+    call.on('peerLeave', function (peerId) {
+      removeVideo(peerId);
+    });
 
-    function removeVideo(peerId){
-        $('#'+peerId).remove();
-    }
+    call.on('close', function () {
+      removeAllRemoteVideos();
+      setupMakeCallUI();
+    });
+  }
 
-    function removeAllRemoteVideos(){
-        $('.videosContainer').empty();
-    }
+  function addVideo(stream) {
+    const videoDom = $('<video autoplay>');
+    videoDom.attr('id', stream.peerId);
+    videoDom.get(0).srcObject = stream;
+    $('.videosContainer').append(videoDom);
+  }
 
-    function setupMakeCallUI(){
-        $('#make-call').show();
-        $('#end-call').hide();
-    }
+  function removeVideo(peerId) {
+    $('#' + peerId).remove();
+  }
 
-    function setupEndCallUI() {
-        $('#make-call').hide();
-        $('#end-call').show();
-    }
+  function removeAllRemoteVideos() {
+    $('.videosContainer').empty();
+  }
+
+  function setupMakeCallUI() {
+    $('#make-call').show();
+    $('#end-call').hide();
+  }
+
+  function setupEndCallUI() {
+    $('#make-call').hide();
+    $('#end-call').show();
+  }
 
 });
