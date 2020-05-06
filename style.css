@@ -24,6 +24,10 @@ html {
     font-weight: bold;
 }
 
+.videosContainer {
+  height: 63%;
+}
+
 .select {
     margin-top: 1em;
     margin-bottom: 1em;
